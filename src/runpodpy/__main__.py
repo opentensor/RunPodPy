@@ -21,11 +21,11 @@ import sys
 
 from gql.transport.aiohttp import AIOHTTPTransport
 from loguru import logger
-from munch import Munch
 from ruamel.yaml import YAML
 
 from runpodpy.cli import create, destroy, list_pods, start, stop
 from runpodpy.runpod import RunPod
+from runpodpy.config import Config, config_builder
 
 logger = logger.opt(colors=True)
 
@@ -38,14 +38,13 @@ def configure_logging(config):
         logger.add(sys.stderr, level="INFO")
 
 
-async def main(config: Munch, command):
+async def run_command(config: Config, command):
     """Main function"""
     global RUNPOD_API_KEY
-    RUNPOD_API_KEY = (
-        RUNPOD_API_KEY
-        if config.runpod_api["API_KEY"] is None
-        else config.runpod_api["API_KEY"]
-    )
+    if config.runpod_api.get('API_KEY') is None:
+        raise ValueError('No API_KEY found in config.runpod_api')
+        
+    RUNPOD_API_KEY = config.runpod_api["API_KEY"]
 
     # Connect to runpod api
     runpod_transport = AIOHTTPTransport(
@@ -66,11 +65,10 @@ async def main(config: Munch, command):
         logger.error("Failed to connect to runpod")
         exit(1)
 
-
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser(
-        description="Register On Runpod",
-        usage="python3 register_on_runpod.py <command> <command args>",
+        description="RunPodPy",
+        usage="python3 -m runpodpy <command> <command args>",
         add_help=True,
     )
     parser._positionals.title = "commands"
@@ -84,6 +82,24 @@ if __name__ == "__main__":
         help="Path to config file",
         default="configs/runpod_config.yaml",
     )
+    parser.add_argument(
+        "--runpod_api.URL",
+        "--URL",
+        type=str,
+        dest="runpod_api.URL",
+        help="Base URL of runpod api",
+        default="https://api.runpod.io/graphql",
+        required=False,
+    )
+    parser.add_argument(
+        "--runpod_api.API_KEY",
+        "--API_KEY",
+        type=str,
+        dest="runpod_api.API_KEY",
+        help="Your RunPod.io api key",
+        required=False,
+    )
+
     stop_parser = command_parsers.add_parser("stop", help="Stop a pod")
     stop_parser.add_argument(
         "--podId",
@@ -240,7 +256,7 @@ if __name__ == "__main__":
 
     list_parser = command_parsers.add_parser("list", help="List pods")
 
-    config = Munch(parser)
+    config: Config = config_builder(parser)
 
     yaml = YAML()
     # Load config file into config
@@ -262,7 +278,12 @@ if __name__ == "__main__":
 
     if config.command in commands.keys():
         # Run main with the command
-        asyncio.run(main(config, commands[config.command]))
+        asyncio.run(run_command(config, commands[config.command]))
     else:
         parser.print_help()
         exit(1)
+
+
+if __name__ == "__main__":
+    
+    main()
