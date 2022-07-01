@@ -34,6 +34,8 @@ idna==3.3
     #   yarl
 jmespath==1.0.1
     # via botocore
+loguru==0.6.0
+    # via RunPodPy (pyproject.toml)
 multidict==6.0.2
     # via
     #   aiohttp
