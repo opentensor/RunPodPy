@@ -1,4 +1,4 @@
-machine_defaults:
+machine:
   imageName: pytorch/pytorch
   containerDiskSize: 40
   volumeSize: 40
