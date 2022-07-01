@@ -1,0 +1,35 @@
+# pyproject.toml
+
+[build-system]
+requires = ["setuptools>=62.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "RunPodPy"
+version = "0.0.1"
+description = "A Python API Wrapper for RunPod.io"
+readme = "README.md"
+authors = [{ name = "Opentensor Foundation", email = "cameron@opentensor.ai" }]
+license = { file = "LICENSE" }
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+]
+keywords = ["runpod", "wrapper", "api"]
+dependencies = [
+    "ruamel.yaml >= 0.17.21",
+    "gql[all] >= 3.3.0",
+    "tabulate >= 0.8.10",
+    'tomli; python_version < "3.11"',
+]
+requires-python = ">=3.9"
+
+[project.optional-dependencies]
+dev = ["black", "pip-tools", "pytest"]
+
+[project.urls]
+Homepage = "https://github.com/opentensor/RunPodPy"
+
+[project.scripts]
+runpodpy = "RunPodPy.__main__:main"

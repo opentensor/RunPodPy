@@ -1,0 +1,11 @@
+machine_defaults:
+  imageName: pytorch/pytorch
+  containerDiskSize: 40
+  volumeSize: 40
+  volumePath: /root
+  gpuCount: 1
+  gpuTypeId: "NVIDIA GeForce RTX 3080 Ti"
+  args: bash -c "sleep infinity"
+runpod_api:
+  API_KEY: ''
+  URL: https://api.runpod.io/graphql
