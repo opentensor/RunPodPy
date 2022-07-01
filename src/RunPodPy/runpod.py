@@ -16,13 +16,13 @@
 # DEALINGS IN THE SOFTWARE.
 
 import asyncio
+import json
 from typing import Dict, List, Optional
 
 import loguru
 from gql import Client, gql
 from gql.transport.aiohttp import AIOHTTPTransport
 from gql.transport.exceptions import TransportQueryError, TransportServerError
-from munch import Munch
 
 
 class RunPodException(Exception):
@@ -90,7 +90,17 @@ class RunPod:
         self.gql_transport = gql_transport
 
     async def __create_spot_instance(
-        self, max_bid: float, config: Munch, logger: loguru.Logger
+        self,
+        max_bid: float,
+        podName: str,
+        imageName: str,
+        containerDiskSize: int,
+        volumeSize: int,
+        volumePath: str,
+        gpuCount: int,
+        gpuTypeId: str,
+        args: str,
+        logger: loguru.Logger,
     ) -> RunPodInstance:
         """Creates a new spot instance using the API"""
 
@@ -99,9 +109,17 @@ class RunPod:
                 transport=self.gql_transport,
                 fetch_schema_from_transport=False,
             ) as session:
-                # make post request with bearer token
-                params = config.machine
-                params["max_bid"] = max_bid
+                params = {
+                    "podName": podName,
+                    "imageName": imageName,
+                    "containerDiskSize": containerDiskSize,
+                    "volumeSize": volumeSize,
+                    "volumePath": volumePath,
+                    "gpuCount": gpuCount,
+                    "gpuTypeId": gpuTypeId,
+                    "args": args,
+                    "max_bid": max_bid,
+                }
 
                 query = gql(
                     """mutation {{
@@ -157,7 +175,16 @@ class RunPod:
             return None
 
     async def __create_on_demand_instance(
-        self, config: Munch, logger: loguru.Logger
+        self,
+        podName: str,
+        imageName: str,
+        containerDiskSize: int,
+        volumeSize: int,
+        volumePath: str,
+        gpuCount: int,
+        gpuTypeId: str,
+        args: str,
+        logger: loguru.Logger,
     ) -> RunPodInstance:
         """Creates a new spot instance using the API"""
         try:
@@ -166,7 +193,16 @@ class RunPod:
                 fetch_schema_from_transport=False,
             ) as session:
                 # make post request with bearer token
-                params = config.machine
+                params = {
+                    "podName": podName,
+                    "imageName": imageName,
+                    "containerDiskSize": containerDiskSize,
+                    "volumeSize": volumeSize,
+                    "volumePath": volumePath,
+                    "gpuCount": gpuCount,
+                    "gpuTypeId": gpuTypeId,
+                    "args": args,
+                }
 
                 query = gql(
                     """mutation {{
@@ -222,14 +258,47 @@ class RunPod:
             return None
 
     async def create_instance(
-        self, max_bid: float, config: Munch, logger: loguru.Logger, spot: bool = True
+        self,
+        max_bid: float,
+        podName: str,
+        imageName: str,
+        containerDiskSize: int,
+        volumeSize: int,
+        volumePath: str,
+        gpuCount: int,
+        gpuTypeId: str,
+        args: str,
+        logger: loguru.Logger,
+        spot: bool = True,
     ) -> RunPodInstance:
         """Creates a new instance"""
         pod: RunPodInstance = None
+        args = json.dumps(args)
         if spot:
-            pod = await self.__create_spot_instance(max_bid, config, logger)
+            pod = await self.__create_spot_instance(
+                max_bid,
+                podName,
+                imageName,
+                containerDiskSize,
+                volumeSize,
+                volumePath,
+                gpuCount,
+                gpuTypeId,
+                args,
+                logger,
+            )
         else:
-            pod = await self.__create_on_demand_instance(config, logger)
+            pod = await self.__create_on_demand_instance(
+                podName,
+                imageName,
+                containerDiskSize,
+                volumeSize,
+                volumePath,
+                gpuCount,
+                gpuTypeId,
+                args,
+                logger,
+            )
 
         if pod is None:
             return None

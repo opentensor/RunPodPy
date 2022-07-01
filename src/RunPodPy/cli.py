@@ -63,7 +63,9 @@ async def start(runpod: RunPod, config: Munch, logger: loguru.Logger) -> None:
             logger.error(f"Pod {config.podId} not found")
             return False
         # Start the pod
-        await runpod.start_instance(pod.podId, pod.gpuCount, logger, config.max_bid, spot)
+        await runpod.start_instance(
+            pod.podId, pod.gpuCount, logger, config.max_bid, spot
+        )
         logger.info(f"Started pod {config.podId}")
 
     elif config.all:
@@ -72,7 +74,9 @@ async def start(runpod: RunPod, config: Munch, logger: loguru.Logger) -> None:
         pods = await runpod.get_pods()
         for pod in pods:
             # Start the pod
-            await runpod.start_instance(pod.podId, pod.gpuCount, logger, config.max_bid, spot)
+            await runpod.start_instance(
+                pod.podId, pod.gpuCount, logger, config.max_bid, spot
+            )
             logger.info(f"Started pod {pod.podId}")
         logger.info("DONE | Started all pods")
     else:
@@ -85,29 +89,22 @@ async def create(runpod: RunPod, config: Munch, logger: loguru.Logger) -> None:
     if not await runpod.test_connection(logger):
         raise RunPodException("Runpod API is not connected")
 
-    config.machine = config["machine_defaults"].copy()
-
-    for key in config["machine_defaults"]:
-        if config.get(key) is None:
-            continue
-        else:
-            config.machine[key] = config[key]
-
-    config.machine["args"] = json.dumps(config.machine["args"])
-
-    if config.get("podName") is None:
+    if config.machine.get("podName") is None:
         # Get all the pods
         pods = await runpod.get_pods(logger)
 
         # Get name for pod
         podName: str = config["machine"]["gpuTypeId"].replace(" ", "_") + str(len(pods))
-    else:
-        podName: str = config.podName
 
-    config.machine["podName"] = podName
+        config.machine["podName"] = podName
 
     # Create a pod if there are no pods
-    pod = await runpod.create_instance(config.max_bid, config, logger, spot=config.spot)
+    pod = await runpod.create_instance(
+        config.max_bid,
+        *config.machine,
+        logger,
+        spot=config.spot,
+    )
     if pod is None:
         logger.error(
             f"Failed to create pod - max_bid:{config.max_bid} spot:{config.spot}"

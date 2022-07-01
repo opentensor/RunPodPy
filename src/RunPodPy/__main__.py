@@ -152,13 +152,6 @@ if __name__ == "__main__":
 
     create_parser = command_parsers.add_parser("create", help="Create a pod")
     create_parser.add_argument(
-        "--podName",
-        type=str,
-        help="Pod name to create",
-        required=False,
-        default=None,
-    )
-    create_parser.add_argument(
         "--spot",
         action="store_true",
         help="Create the pod as a spot instance",
@@ -171,9 +164,20 @@ if __name__ == "__main__":
         help="Maximum bid for the pod",
         required=False,
         default=None,
+    )    
+    create_parser.add_argument(
+        "--podName",
+        "--machine.podName",
+        dest="machine.podName",
+        type=str,
+        help="Pod name to create",
+        required=False,
+        default=None,
     )
     create_parser.add_argument(
         "--gpuTypeId",
+        "--machine.gpuTypeId",
+        dest="machine.gpuTypeId",
         type=str,
         help='The GPU type to use. e.g. "NVIDIA GeForce RTX 3080 Ti"',
         required=False,
@@ -181,6 +185,8 @@ if __name__ == "__main__":
     )
     create_parser.add_argument(
         "--imageName",
+        "--machine.imageName",
+        dest="machine.imageName",
         type=str,
         help="The docker image to use",
         required=False,
@@ -188,6 +194,8 @@ if __name__ == "__main__":
     )
     create_parser.add_argument(
         "--volumePath",
+        "--machine.volumePath",
+        dest="machine.volumePath",
         type=str,
         help="The volume path to mount",
         required=False,
@@ -195,6 +203,8 @@ if __name__ == "__main__":
     )
     create_parser.add_argument(
         "--args",
+        "--machine.args",
+        dest="machine.args",
         type=str,
         help='The arguments to pass to docker. e.g. "bash -c "sleep infinity""',
         required=False,
@@ -202,6 +212,8 @@ if __name__ == "__main__":
     )
     create_parser.add_argument(
         "--containerDiskSize",
+        "--machine.containerDiskSize",
+        dest="machine.containerDiskSize",
         type=int,
         help="The size of the container disk (GB)",
         required=False,
@@ -209,6 +221,8 @@ if __name__ == "__main__":
     )
     create_parser.add_argument(
         "--volumeSize",
+        "--machine.volumeSize",
+        dest="machine.volumeSize",
         type=int,
         help="The size of the volume (GB)",
         required=False,
@@ -216,6 +230,8 @@ if __name__ == "__main__":
     )
     create_parser.add_argument(
         "--gpuCount",
+        "--machine.gpuCount",
+        dest="machine.gpuCount",
         type=int,
         help="The number of GPUs to use",
         required=False,
