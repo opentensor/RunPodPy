@@ -24,8 +24,8 @@ from loguru import logger
 from munch import Munch
 from ruamel.yaml import YAML
 
-from cli import create, destroy, list_pods, start, stop
-from runpod import RunPod
+from RunPodPy.cli import create, destroy, list_pods, start, stop
+from RunPodPy.runpod import RunPod
 
 logger = logger.opt(colors=True)
 
