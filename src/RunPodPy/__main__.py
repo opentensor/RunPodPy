@@ -24,7 +24,7 @@ from loguru import logger
 from munch import Munch
 from ruamel.yaml import YAML
 
-from cli import list_pods
+from cli import create, destroy, list_pods, start, stop
 from runpod import RunPod
 
 logger = logger.opt(colors=True)
@@ -224,45 +224,6 @@ if __name__ == "__main__":
 
     list_parser = command_parsers.add_parser("list", help="List pods")
 
-    register_parser = command_parsers.add_parser("register", help="""Register hotkey""")
-    register_parser.add_argument(
-        "--max_bid", type=float, required=True, help="""Max bid"""
-    )
-    register_parser.add_argument(
-        "--spot", action="store_true", default=True, help="""Spot"""
-    )
-    register_parser.add_argument(
-        "--coldkey",
-        dest="coldkey",
-        type=str,
-        required=True,
-        help="""Coldkey to register from""",
-    )
-    register_parser.add_argument(
-        "-k",
-        "--hotkeys",
-        dest="hotkeys",
-        type=str,
-        nargs="*",
-        required=False,
-        action="store",
-        help="A list of hotkeys to register",
-    )
-    register_parser.add_argument(
-        "--ip_address",
-        dest="ip_address",
-        type=str,
-        required=False,
-        help="""IP address of the instance to use, otherwise a new one will be created""",
-    )
-    register_parser.add_argument(
-        "--runpod_api_key",
-        dest="runpod_api_key",
-        type=str,
-        required=False,
-        help="""Runpod API key""",
-    )
-
     config = Munch(parser)
 
     yaml = YAML()
@@ -271,7 +232,6 @@ if __name__ == "__main__":
         config.update(yaml.load(config_file))
 
     commands = {
-        "register": register,
         "stop": stop,
         "destroy": destroy,
         "terminate": destroy,
