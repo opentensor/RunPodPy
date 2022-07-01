@@ -19,6 +19,7 @@ classifiers = [
 keywords = ["runpod", "wrapper", "api"]
 dependencies = [
     "ruamel.yaml >= 0.17.21",
+    "munch >= 2.5.0",
     "gql[all] >= 3.3.0",
     "tabulate >= 0.8.10",
     "loguru >= 0.6.0",
@@ -33,4 +34,4 @@ dev = ["black", "pip-tools", "pytest"]
 Homepage = "https://github.com/opentensor/RunPodPy"
 
 [project.scripts]
-runpodpy = "RunPodPy.__main__:main"
+runpodpy = "runpodpy.__main__:main"
