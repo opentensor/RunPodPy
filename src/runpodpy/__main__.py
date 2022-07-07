@@ -79,7 +79,8 @@ def main():
         "--config_file",
         type=str,
         help="Path to config file",
-        default="configs/runpod_config.yaml",
+        default=None,
+        required=False,
     )
     parser.add_argument(
         "--runpod_api.URL",
