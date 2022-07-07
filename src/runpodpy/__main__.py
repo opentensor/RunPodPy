@@ -23,9 +23,9 @@ from gql.transport.aiohttp import AIOHTTPTransport
 from loguru import logger
 from ruamel.yaml import YAML
 
-from cli import create, destroy, list_pods, start, stop
-from runpod import RunPod
-from config import Config, config_builder
+from runpodpy.cli import create, destroy, list_pods, start, stop
+from runpodpy.runpod import RunPod
+from runpodpy.config import Config, config_builder
 
 logger = logger.opt(colors=True)
 

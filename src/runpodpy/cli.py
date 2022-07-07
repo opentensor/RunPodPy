@@ -23,7 +23,7 @@ import loguru
 from munch import Munch
 from tabulate import tabulate
 
-from runpod import RunPod, RunPodException, RunPodInstance
+from runpodpy.runpod import RunPod, RunPodException, RunPodInstance
 
 
 async def stop(runpod: RunPod, config: Munch, logger: loguru.Logger) -> None:
