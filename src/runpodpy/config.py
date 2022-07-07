@@ -66,43 +66,9 @@ def config_builder( parser: ArgumentParser = None, strict: bool = False ) -> Con
         """
         if parser == None:
             parser = ArgumentParser()
-
-        # Optionally add config specific arguments
-        try:
-            parser.add_argument('--config', type=str, help='If set, defaults are overridden by passed file.')
-        except:
-            # this can fail if the --config has already been added.
-            pass
-        try:
-            parser.add_argument('--strict',  action='store_true', help='''If flagged, config will check that only exact arguemnts have been set.''', default=False )
-        except:
-            # this can fail if the --config has already been added.
-            pass
-
-        # 1.1 Optionally load defaults if the --config is set.
-        try:
-            config_file_path = str(os.getcwd()) + '/' + vars(parser.parse_known_args()[0])['config']
-        except Exception as e:
-            config_file_path = None
-
-        # 2. Optionally check for --strict, if stict we will parse the args strictly.
-        strict = parser.parse_known_args()[0].strict
-                        
-        if config_file_path != None:
-            config_file_path = os.path.expanduser(config_file_path)
-            try:
-                with open(config_file_path) as f:
-                    params_config = yaml.safe_load(f)
-                    print('Loading config defaults from: {}'.format(config_file_path))
-                    parser.set_defaults(**params_config)
-            except Exception as e:
-                print('Error in loading: {} using default parser settings'.format(e))
-
-        # 2. Continue with loading in params.
-        if not strict:
-            params = parser.parse_known_args()[0]
-        else:
-            params = parser.parse_args()
+       
+        params = parser.parse_known_args()[0]
+        
         _config = Config()
 
         # Splits params on dot syntax i.e machine.podName          

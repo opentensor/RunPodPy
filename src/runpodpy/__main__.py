@@ -68,7 +68,6 @@ async def run_command(config: Config, command):
 def main():
     parser = argparse.ArgumentParser(
         description="RunPodPy",
-        usage="python3 -m runpodpy <command> <command args>",
         add_help=True,
     )
     parser._positionals.title = "commands"
