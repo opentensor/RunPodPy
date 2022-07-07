@@ -196,7 +196,7 @@ def main():
         type=str,
         help='The GPU type to use. e.g. "NVIDIA GeForce RTX 3080 Ti"',
         required=False,
-        default=None,
+        default="NVIDIA GeForce RTX 3080 Ti",
     )
     create_parser.add_argument(
         "--imageName",
@@ -205,7 +205,7 @@ def main():
         type=str,
         help="The docker image to use",
         required=False,
-        default=None,
+        default='pytorch/pytorch',
     )
     create_parser.add_argument(
         "--volumePath",
@@ -214,7 +214,7 @@ def main():
         type=str,
         help="The volume path to mount",
         required=False,
-        default=None,
+        default='/root',
     )
     create_parser.add_argument(
         "--args",
@@ -223,7 +223,7 @@ def main():
         type=str,
         help='The arguments to pass to docker. e.g. "bash -c "sleep infinity""',
         required=False,
-        default=None,
+        default='bash -c "sleep infinity"',
     )
     create_parser.add_argument(
         "--containerDiskSize",
@@ -232,7 +232,7 @@ def main():
         type=int,
         help="The size of the container disk (GB)",
         required=False,
-        default=None,
+        default=40,
     )
     create_parser.add_argument(
         "--volumeSize",
@@ -241,7 +241,7 @@ def main():
         type=int,
         help="The size of the volume (GB)",
         required=False,
-        default=None,
+        default=40,
     )
     create_parser.add_argument(
         "--gpuCount",
@@ -250,7 +250,7 @@ def main():
         type=int,
         help="The number of GPUs to use",
         required=False,
-        default=None,
+        default=1,
     )
 
     list_parser = command_parsers.add_parser("list", help="List pods")
@@ -258,9 +258,11 @@ def main():
     config: Config = config_builder(parser)
 
     yaml = YAML()
-    # Load config file into config
-    with open(config.config_file, "r") as config_file:
-        config.update(yaml.load(config_file))
+
+    if config.config_file:
+        # Load config file into config
+        with open(config.config_file, "r") as config_file:
+            config.update(yaml.load(config_file))
 
     commands = {
         "stop": stop,
