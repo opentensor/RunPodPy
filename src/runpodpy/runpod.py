@@ -487,7 +487,6 @@ class RunPod:
     ) -> RunPodInstance:
         """Creates a new instance"""
         pod: RunPodInstance = None
-        args = json.dumps(args)
         if spot:
             pod = await self.__create_spot_instance_from_template_id(
                 max_bid,
