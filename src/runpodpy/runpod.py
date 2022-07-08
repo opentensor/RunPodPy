@@ -292,7 +292,7 @@ class RunPod:
                     """mutation {{
                                 podFindAndDeployOnDemand(
                                     input: {{
-                                        cloudType: SECURE,
+                                        cloudType: COMMUNITY,
                                         gpuCount: {gpuCount},
                                         volumeInGb: {volumeSize},
                                         containerDiskInGb: {containerDiskSize},
@@ -371,7 +371,7 @@ class RunPod:
                     """mutation {{
                                 podFindAndDeployOnDemand(
                                     input: {{
-                                        cloudType: SECURE,
+                                        cloudType: COMMUNITY,
                                         gpuCount: {gpuCount},
                                         volumeInGb: {volumeSize},
                                         containerDiskInGb: {containerDiskSize},
