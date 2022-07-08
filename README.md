@@ -1,5 +1,5 @@
 # RunPodPy
-Version 0.1.1
+Version 0.1.2
 
 RunPodPy is an unofficial python API wrapper and CLI for https://runpod.io/
 
