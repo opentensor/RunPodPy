@@ -100,12 +100,22 @@ async def create(runpod: RunPod, config: Munch, logger: loguru.Logger) -> None:
         config.machine["podName"] = podName
 
     # Create a pod if there are no pods
-    pod = await runpod.create_instance(
-        config.max_bid,
-        *config.machine,
-        logger,
-        spot=config.spot,
-    )
+    if config.machine.get("templateId") is None:
+        pod = await runpod.create_instance(
+            config.max_bid,
+            *config.machine,
+            logger,
+            spot=config.spot,
+        )
+    else:
+        # Create a pod from a template
+        pod = await runpod.create_instance_from_template(
+            config.max_bid,
+            *config.machine,
+            logger,
+            spot=config.spot,
+        )
+        
     if pod is None:
         logger.error(
             f"Failed to create pod - max_bid:{config.max_bid} spot:{config.spot}"

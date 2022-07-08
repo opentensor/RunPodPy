@@ -253,6 +253,15 @@ def main():
         required=False,
         default=1,
     )
+    create_parser.add_argument(
+        "--templateId",
+        "--machine.templateId",
+        dest="machine.templateId",
+        type=str,
+        help="The templateId to use",
+        required=False,
+        default=argparse.SUPPRESS,
+    )
 
     list_parser = command_parsers.add_parser("list", help="List pods")
 

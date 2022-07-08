@@ -136,9 +136,91 @@ class RunPod:
                                         minMemoryInGb: 15,
                                         gpuTypeId: "{gpuTypeId}",
                                         name: "{podName}",
-                                        imageName: "{imageName}",
+                                        
                                         dockerArgs: {args},
                                         volumeMountPath: "{volumePath}",
+                                        imageName: "{imageName}",
+
+                                        templateId: "{templateId}",
+                                    }}
+                                ) {{
+                                    id
+                                    imageName
+                                    podType
+                                    machineId
+                                    costPerHr
+                                    gpuCount
+                                    machine {{
+                                        podHostId
+                                        gpuDisplayName
+                                    }}
+                                }}
+                            }}""".format(
+                        **params
+                    )
+                )
+
+                data = await session.execute(query)
+                pod_data: Dict[str, str] = data["podRentInterruptable"]
+
+                pod: RunPodInstance = RunPodInstance(
+                    podName=params["podName"],
+                    cost=float(pod_data["costPerHr"]),
+                    podId=pod_data["id"],
+                    podHostId=pod_data["machine"]["podHostId"],
+                    spot=pod_data["podType"] == "INTERRUPTABLE",
+                    gpuDisplayName=pod_data["machine"]["gpuDisplayName"],
+                    gpuCount=int(pod_data["gpuCount"]),
+                )
+
+                return pod
+
+        except (TransportServerError, TransportQueryError) as e:
+            logger.exception(e)
+            return None
+
+    async def __create_spot_instance_from_template_id(
+        self,
+        max_bid: float,
+        podName: str,
+        templateId: str,
+        containerDiskSize: int,
+        volumeSize: int,
+        gpuCount: int,
+        gpuTypeId: str,
+        logger: loguru.Logger,
+    ) -> RunPodInstance:
+        """Creates a new spot instance using the API"""
+
+        try:
+            async with Client(
+                transport=self.gql_transport,
+                fetch_schema_from_transport=False,
+            ) as session:
+                params = {
+                    "podName": podName,
+                    "templateId": templateId,
+                    "containerDiskSize": containerDiskSize,
+                    "volumeSize": volumeSize,
+                    "gpuCount": gpuCount,
+                    "gpuTypeId": gpuTypeId,
+                    "max_bid": max_bid,
+                }
+
+                query = gql(
+                    """mutation {{
+                                podRentInterruptable(
+                                    input: {{
+                                        bidPerGpu: {max_bid},
+                                        cloudType: COMMUNITY,
+                                        gpuCount: {gpuCount},
+                                        volumeInGb: {volumeSize},
+                                        containerDiskInGb: {containerDiskSize},
+                                        minVcpuCount: 2,
+                                        minMemoryInGb: 15,
+                                        gpuTypeId: "{gpuTypeId}",
+                                        name: "{podName}",
+                                        templateId: "{templateId}",
                                     }}
                                 ) {{
                                     id
@@ -259,6 +341,83 @@ class RunPod:
             logger.exception(e)
             return None
 
+    async def __create_on_demand_instance_from_template_id(
+        self,
+        podName: str,
+        templateId: str,
+        containerDiskSize: int,
+        volumeSize: int,
+        gpuCount: int,
+        gpuTypeId: str,
+        logger: loguru.Logger,
+    ) -> RunPodInstance:
+        """Creates a new spot instance using the API"""
+        try:
+            async with Client(
+                transport=self.gql_transport,
+                fetch_schema_from_transport=False,
+            ) as session:
+                # make post request with bearer token
+                params = {
+                    "podName": podName,
+                    "templateId": templateId,
+                    "containerDiskSize": containerDiskSize,
+                    "volumeSize": volumeSize,
+                    "gpuCount": gpuCount,
+                    "gpuTypeId": gpuTypeId,
+                }
+
+                query = gql(
+                    """mutation {{
+                                podFindAndDeployOnDemand(
+                                    input: {{
+                                        cloudType: SECURE,
+                                        gpuCount: {gpuCount},
+                                        volumeInGb: {volumeSize},
+                                        containerDiskInGb: {containerDiskSize},
+                                        minVcpuCount: 2,
+                                        minMemoryInGb: 15,
+                                        gpuTypeId: "{gpuTypeId}",
+                                        name: "{podName}",
+                                        templateId: "{templateId}",
+                                    }}
+                                ) {{
+                                    id
+                                    imageName
+                                    podType
+                                    machineId
+                                    costPerHr
+                                    gpuCount
+                                    machine {{
+                                        podHostId
+                                        gpuDisplayName
+                                    }}
+                                }}
+                            }}""".format(
+                        **params
+                    )
+                )
+
+                data = await session.execute(query)
+                print(data)
+                pod_data: Dict[str, str] = data["podRentInterruptable"]
+
+                pod: RunPodInstance = RunPodInstance(
+                    podName=params["podName"],
+                    cost=float(pod_data["costPerHr"]),
+                    podId=pod_data["id"],
+                    podHostId=pod_data["machine"]["podHostId"],
+                    spot=pod_data["podType"] == "INTERRUPTABLE",
+                    gpuDisplayName=pod_data["machine"]["gpuDisplayName"],
+                    gpuCount=int(pod_data["gpuCount"]),
+                )
+
+                return pod
+
+        except (TransportServerError, TransportQueryError) as e:
+            logger.exception(e)
+            return None
+
     async def create_instance(
         self,
         max_bid: float,
@@ -299,6 +458,55 @@ class RunPod:
                 gpuCount,
                 gpuTypeId,
                 args,
+                logger,
+            )
+
+        if pod is None:
+            return None
+
+        podId = pod.podId
+
+        pod_ = await self.get_pod_by_id(podId, logger)
+        while pod_ is None:
+            await asyncio.sleep(3)  # wait for pod to finish start
+            pod_ = await self.get_pod_by_id(podId, logger)
+
+        return pod
+
+    async def create_instance_from_template_id(
+        self,
+        max_bid: float,
+        podName: str,
+        templateId: str,
+        containerDiskSize: int,
+        volumeSize: int,
+        gpuCount: int,
+        gpuTypeId: str,
+        logger: loguru.Logger,
+        spot: bool = True,
+    ) -> RunPodInstance:
+        """Creates a new instance"""
+        pod: RunPodInstance = None
+        args = json.dumps(args)
+        if spot:
+            pod = await self.__create_spot_instance_from_template_id(
+                max_bid,
+                podName,
+                templateId,
+                containerDiskSize,
+                volumeSize,
+                gpuCount,
+                gpuTypeId,
+                logger,
+            )
+        else:
+            pod = await self.__create_on_demand_instance_from_template_id(
+                podName,
+                templateId,
+                containerDiskSize,
+                volumeSize,
+                gpuCount,
+                gpuTypeId,
                 logger,
             )
 
