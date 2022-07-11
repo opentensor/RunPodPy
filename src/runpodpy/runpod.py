@@ -32,6 +32,13 @@ class RunPodException(Exception):
 
     pass
 
+class OutbidException(RunPodException):
+    """OutbidException
+    Raised when the bid for a spot instance is higher than the current bid.
+    """
+
+    pass
+
 
 class RunPodInstance:
     """RunPodInstance"""
@@ -176,7 +183,10 @@ class RunPod:
                 return pod
 
         except (TransportServerError, TransportQueryError) as e:
-            logger.exception(e)
+            if 'outbid' in e.errors[0]['message']:
+                raise OutbidException(e.errors[0]['message'])
+            else:
+                logger.exception(e)
             return None
 
     async def __create_spot_instance_from_template_id(
@@ -255,7 +265,10 @@ class RunPod:
                 return pod
 
         except (TransportServerError, TransportQueryError) as e:
-            logger.exception(e)
+            if 'outbid' in e.errors[0]['message']:
+                raise OutbidException(e.errors[0]['message'])
+            else:
+                logger.exception(e)
             return None
 
     async def __create_on_demand_instance(
@@ -338,7 +351,10 @@ class RunPod:
                 return pod
 
         except (TransportServerError, TransportQueryError) as e:
-            logger.exception(e)
+            if 'outbid' in e.errors[0]['message']:
+                raise OutbidException(e.errors[0]['message'])
+            else:
+                logger.exception(e)
             return None
 
     async def __create_on_demand_instance_from_template_id(
@@ -415,7 +431,10 @@ class RunPod:
                 return pod
 
         except (TransportServerError, TransportQueryError) as e:
-            logger.exception(e)
+            if 'outbid' in e.errors[0]['message']:
+                raise OutbidException(e.errors[0]['message'])
+            else:
+                logger.exception(e)
             return None
 
     async def create_instance(
