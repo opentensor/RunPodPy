@@ -48,7 +48,7 @@ class GPUTypeId(Enum):
 
     @classmethod
     def from_gpuDisplayName(cls, s: str) -> "GPUTypeId":
-        s_ = s.replace(" ", "_")
+        s_ = s.replace(" ", "_").upper()
         typeId = getattr(GPUTypeId, s_, None)
         if typeId is None:
             raise ValueError(f"Unknown GPU type: {s}")
