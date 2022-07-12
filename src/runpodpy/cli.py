@@ -179,7 +179,7 @@ async def list_pods(runpod: RunPod, config: Munch, logger: loguru.Logger) -> Non
                     "SPOT" if pod.spot else "ON_DEMAND",
                     pod.gpuDisplayName,
                     pod.gpuCount,
-                    pod.cost,
+                    f"${pod.cost:.2f}/hr",
                     pod.ip_address,
                 ]
                 for pod in pods

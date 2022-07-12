@@ -627,9 +627,9 @@ class RunPod:
                                     name
                                     podType
                                     gpuCount
+                                    costPerHr
                                     machine {
                                         podHostId
-                                        costPerHr
                                         gpuDisplayName
                                     }
                                 }
