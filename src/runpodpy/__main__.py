@@ -22,6 +22,7 @@ import sys
 from gql.transport.aiohttp import AIOHTTPTransport
 from loguru import logger
 from ruamel.yaml import YAML
+import runpodpy
 
 from runpodpy.cli import create, destroy, list_pods, start, stop
 from runpodpy.runpod import RunPod
@@ -67,7 +68,7 @@ async def run_command(config: Config, command):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="RunPodPy",
+        description=f"RunPodPy v{runpodpy.__version__}",
         add_help=True,
     )
     parser._positionals.title = "commands"
