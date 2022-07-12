@@ -17,5 +17,39 @@
 
 __version__ = "0.3.0"
 
-# Version of the RunPodPy package
-__version__ = "0.2.0"
+from enum import Enum
+
+
+class CloudType(Enum):
+    COMMUNITY = "COMMUNITY"
+    SECURE = "SECURE"
+
+    def __str__(self):
+        return self.value
+
+
+class GPUTypeId(Enum):
+    RTX_A4000 = "NVIDIA RTX A4000"
+    RTX_A4500 = "NVIDIA RTX A4500"
+    RTX_A5000 = "NVIDIA RTX A5000"
+    RTX_A6000 = "NVIDIA RTX A6000"
+    A100_80GB = "NVIDIA A100 80GB PCIe"
+    A40 = "NVIDIA A40"
+    RTX_3070 = "NVIDIA GeForce RTX 3070"
+    RTX_3080 = "NVIDIA GeForce RTX 3080"
+    RTX_3080_TI = "NVIDIA GeForce RTX 3080 Ti"
+    RTX_3090 = "NVIDIA GeForce RTX 3090"
+    V100_FHHL = "Tesla V100-FHHL-16GB"
+    V100_SXM2 = "Tesla V100-SXM2-16GB"
+    TESLA_V100 = "Tesla V100-PCIE-16GB"
+
+    def __str__(self):
+        return self.value
+
+    @classmethod
+    def from_gpuDisplayName(cls, s: str) -> "GPUTypeId":
+        s_ = s.replace(" ", "_")
+        typeId = getattr(GPUTypeId, s_, None)
+        if typeId is None:
+            raise ValueError(f"Unknown GPU type: {s}")
+        return typeId
