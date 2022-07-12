@@ -27,6 +27,7 @@ import runpodpy
 from runpodpy.cli import create, destroy, list_pods, start, stop
 from runpodpy.runpod import RunPod
 from runpodpy.config import Config, config_builder
+from runpodpy import CloudType, GPUTypeId
 
 logger = logger.opt(colors=True)
 
@@ -195,10 +196,21 @@ def main():
         "--gpuTypeId",
         "--machine.gpuTypeId",
         dest="machine.gpuTypeId",
-        type=str,
+        type=GPUTypeId,
+        choices=list(GPUTypeId),
         help='The GPU type to use. e.g. "NVIDIA GeForce RTX 3080 Ti"',
         required=False,
-        default="NVIDIA GeForce RTX 3080 Ti",
+        default=GPUTypeId.RTX_3080_TI,
+    )
+    create_parser.add_argument(
+        "--cloudType",
+        "--cloud",
+        dest="cloudType",
+        type=CloudType,
+        choices=list(CloudType),
+        help='The CloudType to deploy to. e.g. COMMUNITY, SECURE',
+        required=False,
+        default=CloudType.COMMUNITY,
     )
     create_parser.add_argument(
         "--imageName",

@@ -22,6 +22,7 @@ from typing import List
 import loguru
 from munch import Munch
 from tabulate import tabulate
+from runpodpy import CloudType, GPUTypeId
 
 from runpodpy.runpod import RunPod, RunPodException, RunPodInstance
 
@@ -98,6 +99,9 @@ async def create(runpod: RunPod, config: Munch, logger: loguru.Logger) -> None:
         podName: str = config["machine"]["gpuTypeId"].replace(" ", "_") + str(len(pods))
 
         config.machine["podName"] = podName
+    
+    config.machine["gpuTypeId"] = GPUTypeId(config.machine["gpuTypeId"])
+    config["cloudType"] = CloudType[config["cloudType"].upper()]
 
     # Create a pod if there are no pods
     if config.machine.get("templateId") is None:
