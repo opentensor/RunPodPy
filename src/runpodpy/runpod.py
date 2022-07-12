@@ -26,11 +26,14 @@ from gql import Client, gql
 from gql.transport.aiohttp import AIOHTTPTransport
 from gql.transport.exceptions import TransportQueryError, TransportServerError
 
+from runpodpy import CloudType, GPUTypeId
+
 
 class RunPodException(Exception):
     """RunPodException"""
 
     pass
+
 
 class OutbidException(RunPodException):
     """OutbidException
@@ -45,12 +48,16 @@ class RunPodInstance:
 
     ip_address: str = "ssh.runpod.io"
     gpuCount: int
-    gpuDisplayName: str
+    gpuDisplayName: GPUTypeId
+    vcpuCount: int
+    memoryInGb: int
+    imageName: str
     podName: str
     cost: float
     podId: str
     podHostId: str
     spot: bool
+    cloudType: CloudType
 
     def __init__(
         self,
@@ -58,8 +65,12 @@ class RunPodInstance:
         cost: float,
         podId: str,
         podHostId: str,
-        gpuDisplayName: str,
+        imageName: str,
+        gpuDisplayName: GPUTypeId,
         gpuCount: int,
+        vcpuCount: int,
+        memoryInGb: int,
+        cloudType: CloudType,
         spot: bool = True,
     ):
         self.podName = podName
@@ -69,6 +80,10 @@ class RunPodInstance:
         self.podHostId = podHostId
         self.gpuCount = gpuCount
         self.gpuDisplayName = gpuDisplayName
+        self.vcpuCount = vcpuCount
+        self.memoryInGb = memoryInGb
+        self.cloudType = cloudType
+        self.imageName = imageName
 
     def __str__(self):
         return f"{self.cost} - {self.ip_address} - Spot: {self.spot}"
@@ -107,9 +122,12 @@ class RunPod:
         volumeSize: int,
         volumePath: str,
         gpuCount: int,
-        gpuTypeId: str,
+        gpuTypeId: GPUTypeId,
+        minVcpuCount: int,
+        minMemoryInGb: int,
         args: str,
         logger: loguru.Logger,
+        cloudType: CloudType = CloudType.COMMUNITY,
     ) -> RunPodInstance:
         """Creates a new spot instance using the API"""
 
@@ -125,9 +143,12 @@ class RunPod:
                     "volumeSize": volumeSize,
                     "volumePath": volumePath,
                     "gpuCount": gpuCount,
-                    "gpuTypeId": gpuTypeId,
+                    "gpuTypeId": gpuTypeId.value,
                     "args": args,
                     "max_bid": max_bid,
+                    "minVcpuCount": minVcpuCount,
+                    "minMemoryInGb": minMemoryInGb,
+                    "cloudType": cloudType.value,
                 }
 
                 query = gql(
@@ -135,12 +156,12 @@ class RunPod:
                                 podRentInterruptable(
                                     input: {{
                                         bidPerGpu: {max_bid},
-                                        cloudType: COMMUNITY,
+                                        cloudType: {cloudType},
                                         gpuCount: {gpuCount},
                                         volumeInGb: {volumeSize},
                                         containerDiskInGb: {containerDiskSize},
-                                        minVcpuCount: 2,
-                                        minMemoryInGb: 15,
+                                        minVcpuCount: {minVcpuCount},
+                                        minMemoryInGb: {minMemoryInGb},
                                         gpuTypeId: "{gpuTypeId}",
                                         name: "{podName}",
                                         
@@ -157,6 +178,8 @@ class RunPod:
                                     machineId
                                     costPerHr
                                     gpuCount
+                                    vcpuCount
+                                    memoryInGb
                                     machine {{
                                         podHostId
                                         gpuDisplayName
@@ -176,15 +199,19 @@ class RunPod:
                     podId=pod_data["id"],
                     podHostId=pod_data["machine"]["podHostId"],
                     spot=pod_data["podType"] == "INTERRUPTABLE",
-                    gpuDisplayName=pod_data["machine"]["gpuDisplayName"],
+                    gpuDisplayName=gpuTypeId,
                     gpuCount=int(pod_data["gpuCount"]),
+                    vcpuCount=int(pod_data["vcpuCount"]),
+                    memoryInGb=int(pod_data["memoryInGb"]),
+                    cloudType=cloudType,
+                    imageName=imageName,
                 )
 
                 return pod
 
         except (TransportServerError, TransportQueryError) as e:
-            if 'outbid' in e.errors[0]['message']:
-                raise OutbidException(e.errors[0]['message'])
+            if "outbid" in e.errors[0]["message"]:
+                raise OutbidException(e.errors[0]["message"])
             else:
                 logger.exception(e)
             return None
@@ -197,8 +224,11 @@ class RunPod:
         containerDiskSize: int,
         volumeSize: int,
         gpuCount: int,
-        gpuTypeId: str,
+        gpuTypeId: GPUTypeId,
+        minVcpuCount: int,
+        minMemoryInGb: int,
         logger: loguru.Logger,
+        cloudType: CloudType = CloudType.COMMUNITY,
     ) -> RunPodInstance:
         """Creates a new spot instance using the API"""
 
@@ -213,8 +243,11 @@ class RunPod:
                     "containerDiskSize": containerDiskSize,
                     "volumeSize": volumeSize,
                     "gpuCount": gpuCount,
-                    "gpuTypeId": gpuTypeId,
+                    "gpuTypeId": str(gpuTypeId),
+                    "minVcpuCount": minVcpuCount,
+                    "minMemoryInGb": minMemoryInGb,
                     "max_bid": max_bid,
+                    "cloudType": str(cloudType)
                 }
 
                 query = gql(
@@ -222,12 +255,12 @@ class RunPod:
                                 podRentInterruptable(
                                     input: {{
                                         bidPerGpu: {max_bid},
-                                        cloudType: COMMUNITY,
+                                        cloudType: {cloudType},
                                         gpuCount: {gpuCount},
                                         volumeInGb: {volumeSize},
                                         containerDiskInGb: {containerDiskSize},
-                                        minVcpuCount: 2,
-                                        minMemoryInGb: 15,
+                                        minVcpuCount: {minVcpuCount},
+                                        minMemoryInGb: {minMemoryInGb},
                                         gpuTypeId: "{gpuTypeId}",
                                         name: "{podName}",
                                         templateId: "{templateId}",
@@ -239,6 +272,9 @@ class RunPod:
                                     machineId
                                     costPerHr
                                     gpuCount
+                                    vcpuCount
+                                    memoryInGb
+                                    imageName
                                     machine {{
                                         podHostId
                                         gpuDisplayName
@@ -258,15 +294,19 @@ class RunPod:
                     podId=pod_data["id"],
                     podHostId=pod_data["machine"]["podHostId"],
                     spot=pod_data["podType"] == "INTERRUPTABLE",
-                    gpuDisplayName=pod_data["machine"]["gpuDisplayName"],
+                    gpuDisplayName=gpuTypeId,
                     gpuCount=int(pod_data["gpuCount"]),
+                    vcpuCount=int(pod_data["vcpuCount"]),
+                    memoryInGb=int(pod_data["memoryInGb"]),
+                    cloudType=cloudType,
+                    imageName=pod_data["imageName"],
                 )
 
                 return pod
 
         except (TransportServerError, TransportQueryError) as e:
-            if 'outbid' in e.errors[0]['message']:
-                raise OutbidException(e.errors[0]['message'])
+            if "outbid" in e.errors[0]["message"]:
+                raise OutbidException(e.errors[0]["message"])
             else:
                 logger.exception(e)
             return None
@@ -279,9 +319,12 @@ class RunPod:
         volumeSize: int,
         volumePath: str,
         gpuCount: int,
-        gpuTypeId: str,
+        gpuTypeId: GPUTypeId,
+        minVcpuCount: int,
+        minMemoryInGb: int,
         args: str,
         logger: loguru.Logger,
+        cloudType: CloudType = CloudType.COMMUNITY,
     ) -> RunPodInstance:
         """Creates a new spot instance using the API"""
         try:
@@ -297,20 +340,23 @@ class RunPod:
                     "volumeSize": volumeSize,
                     "volumePath": volumePath,
                     "gpuCount": gpuCount,
-                    "gpuTypeId": gpuTypeId,
+                    "gpuTypeId": gpuTypeId.value,
                     "args": args,
+                    "minVcpuCount": minVcpuCount,
+                    "minMemoryInGb": minMemoryInGb,
+                    "cloudType": cloudType.value,
                 }
 
                 query = gql(
                     """mutation {{
                                 podFindAndDeployOnDemand(
                                     input: {{
-                                        cloudType: COMMUNITY,
+                                        cloudType: {cloudType},
                                         gpuCount: {gpuCount},
                                         volumeInGb: {volumeSize},
                                         containerDiskInGb: {containerDiskSize},
-                                        minVcpuCount: 2,
-                                        minMemoryInGb: 15,
+                                        minVcpuCount: {minVcpuCount},
+                                        minMemoryInGb: {minMemoryInGb},
                                         gpuTypeId: "{gpuTypeId}",
                                         name: "{podName}",
                                         imageName: "{imageName}",
@@ -324,6 +370,8 @@ class RunPod:
                                     machineId
                                     costPerHr
                                     gpuCount
+                                    vcpuCount
+                                    memoryInGb
                                     machine {{
                                         podHostId
                                         gpuDisplayName
@@ -344,15 +392,19 @@ class RunPod:
                     podId=pod_data["id"],
                     podHostId=pod_data["machine"]["podHostId"],
                     spot=pod_data["podType"] == "INTERRUPTABLE",
-                    gpuDisplayName=pod_data["machine"]["gpuDisplayName"],
+                    gpuDisplayName=gpuTypeId,
                     gpuCount=int(pod_data["gpuCount"]),
+                    vcpuCount=int(pod_data["vcpuCount"]),
+                    memoryInGb=int(pod_data["memoryInGb"]),
+                    cloudType=cloudType,
+                    imageName=imageName,
                 )
 
                 return pod
 
         except (TransportServerError, TransportQueryError) as e:
-            if 'outbid' in e.errors[0]['message']:
-                raise OutbidException(e.errors[0]['message'])
+            if "outbid" in e.errors[0]["message"]:
+                raise OutbidException(e.errors[0]["message"])
             else:
                 logger.exception(e)
             return None
@@ -364,8 +416,11 @@ class RunPod:
         containerDiskSize: int,
         volumeSize: int,
         gpuCount: int,
-        gpuTypeId: str,
+        gpuTypeId: GPUTypeId,
+        minVcpuCount: int,
+        minMemoryInGb: int,
         logger: loguru.Logger,
+        cloudType: CloudType = CloudType.COMMUNITY,
     ) -> RunPodInstance:
         """Creates a new spot instance using the API"""
         try:
@@ -380,19 +435,22 @@ class RunPod:
                     "containerDiskSize": containerDiskSize,
                     "volumeSize": volumeSize,
                     "gpuCount": gpuCount,
-                    "gpuTypeId": gpuTypeId,
+                    "gpuTypeId": gpuTypeId.value,
+                    "minVcpuCount": minVcpuCount,
+                    "minMemoryInGb": minMemoryInGb,
+                    "cloudType": cloudType.value,
                 }
 
                 query = gql(
                     """mutation {{
                                 podFindAndDeployOnDemand(
                                     input: {{
-                                        cloudType: COMMUNITY,
+                                        cloudType: {cloudType},
                                         gpuCount: {gpuCount},
                                         volumeInGb: {volumeSize},
                                         containerDiskInGb: {containerDiskSize},
-                                        minVcpuCount: 2,
-                                        minMemoryInGb: 15,
+                                        minVcpuCount: {minVcpuCount},
+                                        minMemoryInGb: {minMemoryInGb},
                                         gpuTypeId: "{gpuTypeId}",
                                         name: "{podName}",
                                         templateId: "{templateId}",
@@ -404,6 +462,9 @@ class RunPod:
                                     machineId
                                     costPerHr
                                     gpuCount
+                                    vcpuCount
+                                    memoryInGb
+                                    imageName
                                     machine {{
                                         podHostId
                                         gpuDisplayName
@@ -424,15 +485,19 @@ class RunPod:
                     podId=pod_data["id"],
                     podHostId=pod_data["machine"]["podHostId"],
                     spot=pod_data["podType"] == "INTERRUPTABLE",
-                    gpuDisplayName=pod_data["machine"]["gpuDisplayName"],
+                    gpuDisplayName=gpuTypeId,
                     gpuCount=int(pod_data["gpuCount"]),
+                    vcpuCount=int(pod_data["vcpuCount"]),
+                    memoryInGb=int(pod_data["memoryInGb"]),
+                    cloudType=cloudType,
+                    imageName=pod_data["imageName"],
                 )
 
                 return pod
 
         except (TransportServerError, TransportQueryError) as e:
-            if 'outbid' in e.errors[0]['message']:
-                raise OutbidException(e.errors[0]['message'])
+            if "outbid" in e.errors[0]["message"]:
+                raise OutbidException(e.errors[0]["message"])
             else:
                 logger.exception(e)
             return None
@@ -446,9 +511,12 @@ class RunPod:
         volumeSize: int,
         volumePath: str,
         gpuCount: int,
-        gpuTypeId: str,
+        gpuTypeId: GPUTypeId,
+        minVcpuCount: int,
+        minMemoryInGb: int,
         args: str,
         logger: loguru.Logger,
+        cloudType: CloudType = CloudType.COMMUNITY,
         spot: bool = True,
     ) -> RunPodInstance:
         """Creates a new instance"""
@@ -464,8 +532,11 @@ class RunPod:
                 volumePath,
                 gpuCount,
                 gpuTypeId,
+                minVcpuCount,
+                minMemoryInGb,
                 args,
                 logger,
+                cloudType,
             )
         else:
             pod = await self.__create_on_demand_instance(
@@ -476,8 +547,11 @@ class RunPod:
                 volumePath,
                 gpuCount,
                 gpuTypeId,
+                minVcpuCount,
+                minMemoryInGb,
                 args,
                 logger,
+                cloudType,
             )
 
         if pod is None:
@@ -500,8 +574,11 @@ class RunPod:
         containerDiskSize: int,
         volumeSize: int,
         gpuCount: int,
-        gpuTypeId: str,
+        gpuTypeId: GPUTypeId,
+        minVcpuCount: int,
+        minMemoryInGb: int,
         logger: loguru.Logger,
+        cloudType: CloudType = CloudType.COMMUNITY,
         spot: bool = True,
     ) -> RunPodInstance:
         """Creates a new instance"""
@@ -515,7 +592,10 @@ class RunPod:
                 volumeSize,
                 gpuCount,
                 gpuTypeId,
+                minVcpuCount,
+                minMemoryInGb,
                 logger,
+                cloudType,
             )
         else:
             pod = await self.__create_on_demand_instance_from_template_id(
@@ -525,7 +605,10 @@ class RunPod:
                 volumeSize,
                 gpuCount,
                 gpuTypeId,
+                minVcpuCount,
+                minMemoryInGb,
                 logger,
+                cloudType,
             )
 
         if pod is None:
@@ -562,9 +645,13 @@ class RunPod:
                                 costPerHr
                                 name
                                 gpuCount
+                                vcpuCount
+                                memoryInGb
+                                imageName
                                 machine {
                                     podHostId
                                     gpuDisplayName
+                                    secureCloud
                                 }
                             }
                             
@@ -581,8 +668,17 @@ class RunPod:
                 cost = float(pod_data["costPerHr"]) if "costPerHr" in pod_data else None
                 # Not a typo, enum has a spelling issue in API
                 spot = pod_data["podType"] == "INTERRUPTABLE"
-                gpuDisplayName = pod_data["machine"]["gpuDisplayName"]
+                try:
+                    gpuDisplayName = GPUTypeId.from_gpuDisplayName(
+                        pod_data["machine"]["gpuDisplayName"]
+                    )
+                except ValueError:
+                    gpuDisplayName = None
                 gpuCount = int(pod_data["gpuCount"])
+                vcpuCount = int(pod_data["vcpuCount"])
+                memoryInGb = int(pod_data["memoryInGb"])
+                imageName = pod_data["imageName"]
+                secureCloud: bool = pod_data["machine"]["secureCloud"]
 
                 pod = RunPodInstance(
                     podName=podName,
@@ -592,6 +688,10 @@ class RunPod:
                     spot=spot,
                     gpuDisplayName=gpuDisplayName,
                     gpuCount=gpuCount,
+                    vcpuCount=vcpuCount,
+                    memoryInGb=memoryInGb,
+                    imageName=imageName,
+                    cloudType=CloudType.SECURE if secureCloud else CloudType.COMMUNITY,
                 )
 
                 return pod
@@ -627,10 +727,14 @@ class RunPod:
                                     name
                                     podType
                                     gpuCount
+                                    vcpuCount
+                                    memoryInGb
+                                    imageName
                                     costPerHr
                                     machine {
                                         podHostId
                                         gpuDisplayName
+                                        secureCloud
                                     }
                                 }
                             }
@@ -652,8 +756,17 @@ class RunPod:
                     )
                     # Not a typo, enum has a spelling issue in API
                     spot = pod_data["podType"] == "INTERRUPTABLE"
-                    gpuDisplayName = pod_data["machine"]["gpuDisplayName"]
+                    try:
+                        gpuDisplayName = GPUTypeId.from_gpuDisplayName(
+                            pod_data["machine"]["gpuDisplayName"]
+                        )
+                    except ValueError:
+                        gpuDisplayName = None
                     gpuCount = int(pod_data["gpuCount"])
+                    vcpuCount = int(pod_data["vcpuCount"])
+                    memoryInGb = int(pod_data["memoryInGb"])
+                    imageName = pod_data["imageName"]
+                    secureCloud: bool = pod_data["machine"]["secureCloud"]
 
                     pod = RunPodInstance(
                         podName=podName,
@@ -663,6 +776,12 @@ class RunPod:
                         spot=spot,
                         gpuDisplayName=gpuDisplayName,
                         gpuCount=gpuCount,
+                        vcpuCount=vcpuCount,
+                        memoryInGb=memoryInGb,
+                        imageName=imageName,
+                        cloudType=CloudType.SECURE
+                        if secureCloud
+                        else CloudType.COMMUNITY,
                     )
                     pods.append(pod)
 

@@ -121,6 +121,7 @@ async def create(runpod: RunPod, config: Munch, logger: loguru.Logger) -> None:
                 config.machine["minVcpuCount"],
                 config.machine["minMemoryInGb"],
                 logger,
+                cloudType=config.cloudType,
                 spot=config.spot,
             )
         else:
@@ -136,6 +137,7 @@ async def create(runpod: RunPod, config: Munch, logger: loguru.Logger) -> None:
                 config.machine.get("minVcpuCount"),
                 config.machine.get("minMemoryInGb"),
                 logger,
+                cloudType=config.cloudType,
                 spot=config.spot,
             )
     except OutbidException as e:
@@ -144,10 +146,10 @@ async def create(runpod: RunPod, config: Munch, logger: loguru.Logger) -> None:
         
     if pod is None:
         logger.error(
-            f"Failed to create pod - max_bid:{config.max_bid} spot:{config.spot}"
+            f"Failed to create {config.cloudType} pod - max_bid:{config.max_bid} spot:{config.spot}"
         )
     else:
-        logger.info(f"Created pod {pod.podId}")
+        logger.info(f"Created {config.cloudType} pod {pod.podId}")
 
 
 async def destroy(runpod: RunPod, config: Munch, logger: loguru.Logger) -> None:
@@ -190,6 +192,7 @@ async def list_pods(runpod: RunPod, config: Munch, logger: loguru.Logger) -> Non
             [
                 "podId",
                 "podName",
+                "cloudType",
                 "instanceType",
                 "gpuTypeId",
                 "gpuCount",
@@ -202,6 +205,7 @@ async def list_pods(runpod: RunPod, config: Munch, logger: loguru.Logger) -> Non
                 [
                     pod.podId,
                     pod.podName,
+                    pod.cloudType,
                     "SPOT" if pod.spot else "ON_DEMAND",
                     pod.gpuDisplayName,
                     pod.gpuCount,
