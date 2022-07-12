@@ -103,6 +103,9 @@ async def create(runpod: RunPod, config: Munch, logger: loguru.Logger) -> None:
     config.machine["gpuTypeId"] = GPUTypeId(config.machine["gpuTypeId"])
     config["cloudType"] = CloudType[config["cloudType"].upper()]
 
+    if config.get("max_bid") is None:
+        logger.exception("No --max_bid specified")
+        return
     try:
         # Create a pod if there are no pods
          # Create a pod if there are no pods
