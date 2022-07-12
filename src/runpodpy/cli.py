@@ -24,7 +24,7 @@ from munch import Munch
 from tabulate import tabulate
 from runpodpy import CloudType, GPUTypeId
 
-from runpodpy.runpod import RunPod, RunPodException, RunPodInstance
+from runpodpy.runpod import OutbidException, RunPod, RunPodException, RunPodInstance
 
 
 async def stop(runpod: RunPod, config: Munch, logger: loguru.Logger) -> None:
@@ -103,22 +103,27 @@ async def create(runpod: RunPod, config: Munch, logger: loguru.Logger) -> None:
     config.machine["gpuTypeId"] = GPUTypeId(config.machine["gpuTypeId"])
     config["cloudType"] = CloudType[config["cloudType"].upper()]
 
-    # Create a pod if there are no pods
-    if config.machine.get("templateId") is None:
-        pod = await runpod.create_instance(
-            config.max_bid,
-            *config.machine,
-            logger,
-            spot=config.spot,
-        )
-    else:
-        # Create a pod from a template
-        pod = await runpod.create_instance_from_template(
-            config.max_bid,
-            *config.machine,
-            logger,
-            spot=config.spot,
-        )
+    try:
+        # Create a pod if there are no pods
+         # Create a pod if there are no pods
+        if config.machine.get("templateId") is None:
+            pod = await runpod.create_instance(
+                config.max_bid,
+                *config.machine,
+                logger,
+                spot=config.spot,
+            )
+        else:
+            # Create a pod from a template
+            pod = await runpod.create_instance_from_template(
+                config.max_bid,
+                *config.machine,
+                logger,
+                spot=config.spot,
+            )
+    except OutbidException as e:
+        logger.error(e)
+        pod = None
         
     if pod is None:
         logger.error(
