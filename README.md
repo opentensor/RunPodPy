@@ -1,14 +1,14 @@
 # RunPodPy
-Version 0.2.0
+Version 0.3.0
 
 RunPodPy is an unofficial python API wrapper and CLI for https://runpod.io/
 
 ## Usage
 `$ python3 -m runpodpy`  
-usage: __main__.py [-h] [--debug] [--config_file CONFIG_FILE] [--runpod_api.URL RUNPOD_API.URL] [--runpod_api.API_KEY RUNPOD_API.API_KEY]
-                   {stop,destroy,terminate,start,run,resume,create,list} ...
+usage: runpodpy [-h] [--debug] [--config_file CONFIG_FILE] [--runpod_api.URL RUNPOD_API.URL] [--runpod_api.API_KEY RUNPOD_API.API_KEY]
+                {stop,destroy,terminate,start,run,resume,create,list} ...
 
-RunPodPy
+RunPodPy v0.3.0
 
 commands:
   {stop,destroy,terminate,start,run,resume,create,list}
