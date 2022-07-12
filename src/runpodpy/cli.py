@@ -108,19 +108,33 @@ async def create(runpod: RunPod, config: Munch, logger: loguru.Logger) -> None:
         return
     try:
         # Create a pod if there are no pods
-         # Create a pod if there are no pods
         if config.machine.get("templateId") is None:
             pod = await runpod.create_instance(
                 config.max_bid,
-                *config.machine,
+                config.machine["podName"],
+                config.machine["imageName"],
+                config.machine["containerDiskSize"],
+                config.machine["volumeSize"],
+                config.machine["volumePath"],
+                config.machine["gpuCount"],
+                config.machine["gpuTypeId"],
+                config.machine["minVcpuCount"],
+                config.machine["minMemoryInGb"],
                 logger,
                 spot=config.spot,
             )
         else:
             # Create a pod from a template
-            pod = await runpod.create_instance_from_template(
+            pod = await runpod.create_instance_from_template_id(
                 config.max_bid,
-                *config.machine,
+                config.machine.get("podName"),
+                config.machine.get("templateId"),
+                config.machine.get("containerDiskSize"),
+                config.machine.get("volumeSize"),
+                config.machine.get("gpuCount"),
+                config.machine.get("gpuTypeId"),
+                config.machine.get("minVcpuCount"),
+                config.machine.get("minMemoryInGb"),
                 logger,
                 spot=config.spot,
             )
