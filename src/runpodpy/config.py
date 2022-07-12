@@ -20,7 +20,6 @@ from argparse import ArgumentParser
 from munch import Munch
 from ruamel.yaml import YAML
 
-import os
 yaml = YAML()
 
 class Config ( Munch ):
