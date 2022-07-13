@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "RunPodPy"
-version = "0.3.1"
+version = "0.3.2"
 description = "A Python API Wrapper and CLI for RunPod.io"
 readme = "README.md"
 authors = [{ name = "Opentensor Foundation", email = "cameron@opentensor.ai" }]

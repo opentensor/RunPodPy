@@ -26,7 +26,7 @@ from gql import Client, gql
 from gql.transport.aiohttp import AIOHTTPTransport
 from gql.transport.exceptions import TransportQueryError, TransportServerError
 
-from runpodpy import CloudType, GPUTypeId
+from runpodpy import CloudType, GPUTypeId, PodStatus
 
 
 class RunPodException(Exception):
@@ -57,6 +57,7 @@ class RunPodInstance:
     podId: str
     podHostId: str
     spot: bool
+    desiredStatus: PodStatus
     cloudType: CloudType
 
     def __init__(
@@ -71,6 +72,7 @@ class RunPodInstance:
         vcpuCount: int,
         memoryInGb: int,
         cloudType: CloudType,
+        desiredStatus: PodStatus,
         spot: bool = True,
     ):
         self.podName = podName
@@ -84,9 +86,10 @@ class RunPodInstance:
         self.memoryInGb = memoryInGb
         self.cloudType = cloudType
         self.imageName = imageName
+        self.desiredStatus = desiredStatus
 
     def __str__(self):
-        return f"{self.cost} - {self.ip_address} - Spot: {self.spot}"
+        return f"{self.podId} - {self.gpuDisplayName} - ${self.cost:0.2f}/hr - {self.cloudType.value}:{'SPOT' if self.spot else 'ON-DEMAND'}:{self.desiredStatus.value}"
 
     async def stop_instance(self, runpod: "RunPod", logger: loguru.Logger) -> bool:
         """Stops the instance"""
@@ -180,6 +183,7 @@ class RunPod:
                                     gpuCount
                                     vcpuCount
                                     memoryInGb
+                                    desiredStatus
                                     machine {{
                                         podHostId
                                         gpuDisplayName
@@ -205,6 +209,7 @@ class RunPod:
                     memoryInGb=int(pod_data["memoryInGb"]),
                     cloudType=cloudType,
                     imageName=imageName,
+                    desiredStatus=PodStatus[pod_data["desiredStatus"]],
                 )
 
                 return pod
@@ -275,6 +280,7 @@ class RunPod:
                                     vcpuCount
                                     memoryInGb
                                     imageName
+                                    desiredStatus
                                     machine {{
                                         podHostId
                                         gpuDisplayName
@@ -300,6 +306,7 @@ class RunPod:
                     memoryInGb=int(pod_data["memoryInGb"]),
                     cloudType=cloudType,
                     imageName=pod_data["imageName"],
+                    desiredStatus=PodStatus[pod_data["desiredStatus"]],
                 )
 
                 return pod
@@ -372,6 +379,7 @@ class RunPod:
                                     gpuCount
                                     vcpuCount
                                     memoryInGb
+                                    desiredStatus
                                     machine {{
                                         podHostId
                                         gpuDisplayName
@@ -398,6 +406,7 @@ class RunPod:
                     memoryInGb=int(pod_data["memoryInGb"]),
                     cloudType=cloudType,
                     imageName=imageName,
+                    desiredStatus=PodStatus[pod_data["desiredStatus"]]
                 )
 
                 return pod
@@ -465,6 +474,7 @@ class RunPod:
                                     vcpuCount
                                     memoryInGb
                                     imageName
+                                    desiredStatus
                                     machine {{
                                         podHostId
                                         gpuDisplayName
@@ -491,6 +501,7 @@ class RunPod:
                     memoryInGb=int(pod_data["memoryInGb"]),
                     cloudType=cloudType,
                     imageName=pod_data["imageName"],
+                    desiredStatus=PodStatus[pod_data["desiredStatus"]],
                 )
 
                 return pod
@@ -648,6 +659,7 @@ class RunPod:
                                 vcpuCount
                                 memoryInGb
                                 imageName
+                                desiredStatus
                                 machine {
                                     podHostId
                                     gpuDisplayName
@@ -692,6 +704,7 @@ class RunPod:
                     memoryInGb=memoryInGb,
                     imageName=imageName,
                     cloudType=CloudType.SECURE if secureCloud else CloudType.COMMUNITY,
+                    desiredStatus=PodStatus[pod_data["desiredStatus"]]
                 )
 
                 return pod
@@ -731,6 +744,7 @@ class RunPod:
                                     memoryInGb
                                     imageName
                                     costPerHr
+                                    desiredStatus
                                     machine {
                                         podHostId
                                         gpuDisplayName
@@ -779,9 +793,8 @@ class RunPod:
                         vcpuCount=vcpuCount,
                         memoryInGb=memoryInGb,
                         imageName=imageName,
-                        cloudType=CloudType.SECURE
-                        if secureCloud
-                        else CloudType.COMMUNITY,
+                        cloudType=CloudType.SECURE if secureCloud else CloudType.COMMUNITY,
+                        desiredStatus=PodStatus[pod_data["desiredStatus"]],
                     )
                     pods.append(pod)
 

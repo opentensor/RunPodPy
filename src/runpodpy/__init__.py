@@ -15,7 +15,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-__version__ = "0.3.1"
+__version__ = "0.3.2"
 
 from enum import Enum
 
@@ -53,3 +53,13 @@ class GPUTypeId(Enum):
         if typeId is None:
             raise ValueError(f"Unknown GPU type: {s}")
         return typeId
+
+class PodStatus(Enum):
+    """
+    Status (desired status) of a pod.
+    """
+    RUNNING = "RUNNING"
+    EXITED = "EXITED"
+
+    def __str__(self):
+        return self.value
