@@ -199,6 +199,62 @@ class RunPod:
         except (TransportServerError, TransportQueryError) as e:
             logger.exception(e)
             return None
+
+    async def get_gpu_types(self, logger: loguru.Logger) -> List[Tuple[GPUTypeId, Optional[int], bool, bool, Optional[float], Optional[float]]]:
+        """
+        Gets the gpu types and their attributes
+
+        :param logger: the logger to use
+        :return: a list of tuples containing the gpu_type_id, memoryInGb, secureCloud, communityCloud, minimum bid price, on-demand price
+        """
+        try:
+            async with Client(
+                transport=self.gql_transport,
+                fetch_schema_from_transport=False,
+            ) as session:
+                query = gql(
+                    """query GpuTypes {
+                        gpuTypes {
+                            id
+                            memoryInGb
+                            secureCloud
+                            communityCloud
+                            lowestPrice(input: {gpuCount: 1}) {
+                                minimumBidPrice
+                                uninterruptablePrice
+                            }
+                        }
+                    }"""
+                )
+
+                data = await session.execute(query)
+                types_data: List[Dict[str, Any]] = data["gpuTypes"]
+
+        except (TransportServerError, TransportQueryError) as e:
+            logger.exception(e)
+            return []
+
+        gpu_types: List[Tuple[GPUTypeId, Optional[int], bool, bool, Optional[float], Optional[float]]] = []
+        for gpuInfo in types_data:
+            try:
+                gpu_types.append(
+                    (
+                        GPUTypeId(gpuInfo["id"]),
+                        gpuInfo["memoryInGb"],
+                        gpuInfo["secureCloud"],
+                        gpuInfo["communityCloud"],
+                        gpuInfo["lowestPrice"]["minimumBidPrice"],
+                        gpuInfo["lowestPrice"]["uninterruptablePrice"],
+                    )
+                )
+            except KeyError:
+                logger.exception(f"Error parsing GPU type: {gpuInfo}")
+                continue
+
+
+
+        return gpu_types
+
     async def __create_spot_instance(
         self,
         max_bid: float,
@@ -1021,6 +1077,8 @@ class RunPod:
             ):
                 logger.info(f"Pod {podId} is already running")
                 return True
+            elif "outbid" in e.errors[0]["message"]:
+                raise OutbidException(e.errors[0]["message"])
             else:
                 logger.exception(e)
                 logger.exception(query)
@@ -1075,6 +1133,8 @@ class RunPod:
             ):
                 logger.info(f"Pod {podId} is already running")
                 return True
+            elif "outbid" in e.errors[0]["message"]:
+                raise OutbidException(e.errors[0]["message"])
             else:
                 logger.exception(e)
                 logger.exception(query)
