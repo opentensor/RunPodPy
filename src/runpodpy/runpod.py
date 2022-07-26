@@ -116,6 +116,89 @@ class RunPod:
     def __init__(self, gql_transport: AIOHTTPTransport):
         self.gql_transport = gql_transport
 
+    async def get_on_demand_price(self, gpuTypeId: GPUTypeId, logger: loguru.Logger, gpuCount: int = 1) -> Optional[float]:
+        """
+        Gets the current on-demand price for the gpuTypeId
+
+        :param gpuTypeId: the gpu type id to check
+        :param logger: the logger to use
+        :param gpuCount: the number of gpus to check (defaults to 1)
+        :return: the current on-demand price or None if no price is available
+        """
+        try:
+            async with Client(
+                transport=self.gql_transport,
+                fetch_schema_from_transport=False,
+            ) as session:
+                params = {
+                    "id": gpuTypeId.value,
+                    "gpuCount": gpuCount,
+                }
+
+                query = gql(
+                    """query GpuTypes ($id: String!, $gpuCount: Int!) {
+                            gpuTypes(input: {id: $id}) {
+                                secureCloud
+                                lowestPrice(input: {gpuCount: $gpuCount}) {
+                                    uninterruptablePrice
+                                }
+                            }
+                    }"""
+                )
+
+                data = await session.execute(query, variable_values=params)
+                type_data: Dict[str, str] = data["gpuTypes"][0]
+
+                if type_data["secureCloud"] and type_data["lowestPrice"]["uninterruptablePrice"] is not None:
+                    return float(type_data["lowestPrice"]["uninterruptablePrice"])
+
+                return None
+
+        except (TransportServerError, TransportQueryError) as e:
+            logger.exception(e)
+            return None
+
+    async def get_current_bid(self, gpuTypeId: GPUTypeId, logger: loguru.Logger, gpuCount: int = 1) -> Optional[float]:
+        """
+        Gets the current spot price for the gpuTypeId
+
+        :param gpuTypeId: thhe gpu type id to check
+        :param logger: the logger to use
+        :param gpuCount: the number of gpus to check (defaults to 1)
+        :return: the current bid or None if no bid is available
+        """
+        try:
+            async with Client(
+                transport=self.gql_transport,
+                fetch_schema_from_transport=False,
+            ) as session:
+                params = {
+                    "id": gpuTypeId.value,
+                    "gpuCount": gpuCount,
+                }
+
+                query = gql(
+                    """query GpuTypes ($id: String!, $gpuCount: Int!) {
+                            gpuTypes(input: {id: $id}) {
+                                communityCloud
+                                lowestPrice(input: {gpuCount: $gpuCount}) {
+                                    minimumBidPrice
+                                }
+                            }
+                    }"""
+                )
+
+                data = await session.execute(query, variable_values=params)
+                type_data: Dict[str, str] = data["gpuTypes"][0]
+
+                if type_data["communityCloud"] and type_data["lowestPrice"]["minimumBidPrice"] is not None:
+                    return float(type_data["lowestPrice"]["minimumBidPrice"])
+
+                return None
+
+        except (TransportServerError, TransportQueryError) as e:
+            logger.exception(e)
+            return None
     async def __create_spot_instance(
         self,
         max_bid: float,
